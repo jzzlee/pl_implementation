@@ -141,7 +141,7 @@ void ListParser::init()
 	consume();
 }
 
-void ListParser::element()
+bool ListParser::element()
 {
 	if (lookahead.getType() == ListLexer::NAME)
 	{
@@ -155,9 +155,10 @@ void ListParser::element()
 	{
 		std::cout << "ListParser get noknown element: " << lookahead.toString() << std::endl;
 	}
+	return true;
 }
 
-void ListParser::elements()
+bool ListParser::elements()
 {
 	element();
 	while (lookahead.getType() == ListLexer::COMMA) {
@@ -167,24 +168,31 @@ void ListParser::elements()
 		else
 			break;
 	}
+	return true;
 }
 
-void ListParser::list()
+bool ListParser::list()
 {
-	match(ListLexer::LBRACK);
-	elements();
-	match(ListLexer::RBRACK);
+	bool success = match(ListLexer::LBRACK);
+	if (!success)
+		return false;
+	success = elements();
+	if (!success)
+		return false;
+	success = match(ListLexer::RBRACK);
+	return success;
 }
 
-void ListParser::match(int x)
+bool ListParser::match(int x)
 {
 	if (lookahead.getType() == x)
 	{
 		consume();
+		return true;
 	}
 	else
 	{
-		std::cout << "ListParser cannot match " << lookahead.getType() << " with type " << x << std::endl;
+		return false;
 	}
 }
 
@@ -195,84 +203,330 @@ void ListParser::consume()
 }
 
 
-ListLLKParser::ListLLKParser(Lexer &lexer, const size_t n) :
-	ListParser(lexer), length(n)
-{
-	buff.resize(n);
-}
-
-void ListLLKParser::init()
-{
-	for (auto &c : buff)
-		c = input.nextToken();
+BackTrackParser::BackTrackParser(Lexer &input) 
+	: ListParser(input) 
+{ 
+	//init();
 }
 
 
-Token ListLLKParser::LT(int i) const
+void BackTrackParser::init()
 {
-	return buff[(p + i - 1) % length];
+	sync(1);
 }
 
-int ListLLKParser::LA(int i) const
+
+bool BackTrackParser::stat()
+{
+	if (!match_stat())
+		return false;
+	else
+		return true;
+	if (match_list() &&match(ListLexer::LEOF_TYPE))
+	{
+		list();
+		match(Lexer::LEOF_TYPE);
+		return true;
+	}
+	else if (match_assign() && match(ListLexer::LEOF_TYPE))
+	{
+		assign();
+		match(Lexer::LEOF_TYPE);
+		return true;
+	}
+	else
+		std::cout << "error in stat" << std::endl;
+	return false;
+}
+
+
+bool BackTrackParser::match_stat()
+{
+	auto success = false;
+	mark();
+	if (match_list() && match(ListLexer::LEOF_TYPE))
+		success = true;
+	else
+	{
+		release();
+		mark();
+	}
+	if(!success && match_assign() && match(ListLexer::LEOF_TYPE))
+		success = true;
+	if (!success)
+		release();
+	else
+		pop();
+	return success;
+}
+
+bool BackTrackParser::speculate_stat_alt1()
+{
+	auto success = true;
+	mark();
+	if (match_list() && match(Lexer::LEOF_TYPE))
+	{
+		success = true;
+	}
+	else
+		success = false;
+	release();
+	return success;
+}
+
+
+bool BackTrackParser::speculate_stat_alt2()
+{
+	auto success = false;
+	mark();
+	if (match_list() && match(ListLexer::EQUALS) && match_list())
+		success = true;
+	release();
+	return success;
+}
+
+
+Token BackTrackParser::LT(int i)
+{
+	sync(i);
+	return buff[p + i - 1];
+}
+
+int BackTrackParser::LA(int i)
 {
 	return LT(i).getType();
 }
 
-void ListLLKParser::consume()
+bool BackTrackParser::match(int x)
 {
-	buff[p] = input.nextToken();
-	p = (p + 1) % length;
-}
-
-void ListLLKParser::match(int x)
-{
+	mark();
 	if (LA(1) == x)
 	{
 		consume();
+		pop();
+		return true;
 	}
 	else
 	{
-		std::cout << "can not match " << LA(1) << " with type " << x << std::endl;
+		release();
+		return false;
 	}
 }
 
-void ListLLKParser::element()
+void BackTrackParser::sync(int i)
 {
-	auto ahead1 = LA(1);
-	auto ahead2 = LA(2);
-	if (ahead1 == ListLexer::NAME && ahead2 == ListLexer::EQUALS)
+	if ((p + i - 1) > (int(buff.size()) - 1))
 	{
-		match(ListLexer::NAME);
-		match(ListLexer::EQUALS);
-		match(ListLexer::NAME);
+		auto n = (p + i - 1) - (int(buff.size()) - 1);
+		fill(n);
 	}
-	else if (ahead1 == ListLexer::NAME)
+}
+
+void BackTrackParser::fill(int n)
+{
+	for (int i = 0; i < n; ++i)
 	{
-		match(ListLexer::NAME);
+		buff.push_back(input.nextToken());
 	}
-	else if (ahead1 == ListLexer::LBRACK)
+}
+
+void BackTrackParser::consume()
+{
+	p++;
+	//if (p + 1 >= buff.size())
+		sync(1);
+}
+
+int BackTrackParser::mark()
+{
+	markers.push_back(p);
+	return p;
+}
+
+void BackTrackParser::release()
+{
+	int marker = *(--markers.end());
+	markers.pop_back();
+	seek(marker);
+}
+
+void BackTrackParser::pop()
+{
+	markers.pop_back();
+	clear_buff();
+}
+
+void BackTrackParser::clear_buff()
+{
+	if (p + 1 == buff.size() && !isSpeculating())
 	{
-		list();
+		p = 0;
+		buff.clear();
 	}
+}
+
+void BackTrackParser::seek(int index)
+{
+	p = index;
+}
+
+bool BackTrackParser::isSpeculating()
+{
+	return markers.size() > 0;
+}
+
+bool BackTrackParser::assign()
+{
+	if (list() && match(ListLexer::EQUALS) && list())
+		return true;
+	return false;
+}
+
+bool BackTrackParser::match_assign()
+{
+	mark();
+	auto success = match_list() && match(ListLexer::EQUALS) && match_list();
+	if (!success)
+		release();
 	else
-	{
-		std::cout << "ListLLKParser get noknown element: " << ahead1 << std::endl;
-	}
+		pop();
+	return success;
 }
 
-void ListLLKParser::elements()
-{
+bool BackTrackParser::elements()
+{	
+
 	element();
 	while (LA(1) == ListLexer::COMMA) {
 		match(ListLexer::COMMA);
 		element();
-
 	}
+	return true;
+}
+
+bool BackTrackParser::match_elements()
+{
+	mark();
+	auto success = match_element();
+	if (!success)
+	{
+		release();
+		return false;
+	}
+	while (LA(1) == ListLexer::COMMA) {
+		if (!match(ListLexer::COMMA))
+		{
+			release();
+			return false;
+		}
+		success = match_element();
+		if (!success)
+		{
+			release();
+			return false;
+		}
+	}
+	pop();
+	return true;
+}
+
+bool BackTrackParser::element()
+{
+	if (LA(1) == ListLexer::NAME && LA(2) == ListLexer::EQUALS)
+	{
+		match(ListLexer::NAME);
+		match(ListLexer::EQUALS);
+		match(ListLexer::NAME);
+		return true;
+	}
+	else if (LA(1) == ListLexer::NAME)
+	{
+		match(ListLexer::NAME);
+		return true;
+	}
+	else if (LA(1) == ListLexer::LBRACK)
+	{
+		list();
+		return true;
+	}
+	return false;
+}
+
+bool BackTrackParser::match_element()
+{
+	mark();
+	auto success = LA(1) == ListLexer::NAME && LA(2) == ListLexer::EQUALS;
+	if (success)
+	{
+		match(ListLexer::NAME);
+		match(ListLexer::EQUALS);
+		match(ListLexer::NAME);
+		pop();
+		return true;
+	}
+	else
+	{
+		release();
+		mark();
+	}
+	success = LA(1) == ListLexer::NAME;
+	if (success)
+	{
+		if (match(ListLexer::NAME))
+		{
+			pop();
+			return true;
+		}
+	}
+	else
+	{
+		release();
+		mark();
+	}
+	success = LA(1) == ListLexer::LBRACK;
+	if (success)
+	{
+		auto success = match_list();
+		if (success)
+		{
+			pop();
+			return true;
+		}
+	}
+	release();
+	return false;
+}
+
+bool BackTrackParser::list()
+{
+	if (match_list())
+		return true;
+	else
+		return false;
 }
 
 
-BackTrackParser::BackTrackParser(Lexer &input) 
-	: Parser(input) { }
-
-
-void 
+bool BackTrackParser::match_list()
+{
+	mark();
+	bool success = match(ListLexer::LBRACK);
+	if (!success)
+	{
+		release();
+		return false;
+	}
+	success = match_elements();
+	if (!success)
+	{
+		release();
+		return false;
+	}
+	success = match(ListLexer::RBRACK);
+	if (!success)
+	{
+		release();
+		return false;
+	}
+	pop();
+	return true;
+}

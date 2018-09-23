@@ -65,10 +65,10 @@ public:
 	virtual ~Parser();
 
 	virtual void init() = 0;
-	virtual void element() = 0;
-	virtual void elements() = 0;
-	virtual void list() = 0;
-	virtual void match(int x) = 0;
+	virtual bool element() = 0;
+	virtual bool elements() = 0;
+	virtual bool list() = 0;
+	virtual bool match(int x) = 0;
 	virtual void consume() = 0;
 
 protected:
@@ -82,50 +82,49 @@ public:
 	ListParser(Lexer &input);
 
 	void init() override;
-	void element() override;
-	void elements() override;
-	void list() override;
-	void match(int x) override;
+	bool element() override;
+	bool elements() override;
+	bool list() override;
+	bool match(int x) override;
 	void consume() override;
 };
 
-class ListLLKParser : public ListParser {
-public:
-	ListLLKParser(Lexer &lexer, const size_t n);
 
-	Token LT(int i) const;
-	int LA(int i) const;
-
-	void init() override;
-	void element() override;
-	void elements() override;
-	void match(int x) override;
-	void consume() override;
-
-private:
-	const size_t length;
-	std::vector<Token> buff;
-	int p = 0;
-};
-
-
-class BackTrackParser : public Parser {
+class BackTrackParser : public ListParser {
 public:
 	BackTrackParser(Lexer &input);
 
 	bool speculate_stat_alt1();
-	bool specilate_stat_alt2();
+	bool speculate_stat_alt2();
 	Token LT(int i);
 	int LA(int i);
-	void match(int x) override;
+	bool match(int x) override;
 	void sync(int i);
 	void fill(int n);
 	void consume() override;
 	int mark();
 	void release();
+	void pop();
 	void seek(int index);
 	bool isSpeculating();
-	void stat();
+	void clear_buff();
+
+	void init() override;
+
+	bool stat();
+	bool match_stat();
+
+	bool assign();
+	bool match_assign();
+
+	bool elements() override;
+	bool match_elements();
+	
+	bool element() override;
+	bool match_element();
+
+	bool list() override;
+	bool match_list();
 
 private:
 	std::vector<int> markers;
