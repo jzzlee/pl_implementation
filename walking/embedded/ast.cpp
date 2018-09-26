@@ -1,7 +1,5 @@
 
 #include "ast.h"
-#include <sstream>
-#include <iostream>
 
 const int AstToken::INVALID_TOKEN_TYPE = 0;
 const int AstToken::PLUS = 1;
@@ -59,6 +57,142 @@ int Ast::get_node_type() const
 
 void Ast::print() const
 {
-	std::cout << to_string() << std::endl;
+	std::cout << to_string();
+}
+
+AddNode::AddNode(Ast *left, AstToken *add, Ast *right)
+	:Ast(add), left(left), right(right) {}
+
+void AddNode::print() const
+{
+	left->print();
+	std::cout << " + ";
+	right->print();
+}
+
+AddNode::~AddNode()
+{
+	delete left;
+	delete right;
+}
+
+AssignNode::AssignNode(Ast *left, AstToken *assign, Ast *right)
+	: Ast(assign), left(left), right(right) {}
+
+AssignNode::~AssignNode()
+{
+	delete left;
+	delete right;
+}
+
+void AssignNode::print() const
+{
+	left->print();
+	std::cout << " = ";
+	right->print();
+}
+
+
+DotProductNode::DotProductNode(Ast *left, AstToken *dot, Ast *right)
+	: Ast(dot), left(left), right(right) {}
+
+
+DotProductNode::~DotProductNode()
+{
+	delete left;
+	delete right;
+}
+
+void DotProductNode::print() const
+{
+	left->print();
+	std::cout << " . ";
+	right->print();
+}
+
+IntNode::IntNode(AstToken *token)
+	: Ast(token) {}
+
+
+MultNode::MultNode(Ast *left, AstToken *mult, Ast *right)
+	: Ast(mult), left(left), right(right) {}
+
+MultNode::~MultNode()
+{
+	delete left;
+	delete right;
+}
+
+void MultNode::print() const
+{
+	std::stringstream ss;
+
+	left->print();
+	std::cout << " * ";
+	right->print();
+}
+
+PrintNode::PrintNode(AstToken *pr, Ast *element)
+	:Ast(pr), element(element) {}
+
+PrintNode::~PrintNode()
+{
+	delete element;
+}
+
+void PrintNode::print() const
+{
+	std::cout << "print ";
+	element->print();
+}
+
+StatListNode::StatListNode(const std::vector<Ast*> &elements)
+	: Ast(nullptr), elements(elements) {}
+
+StatListNode::StatListNode(const std::initializer_list<Ast*> &elements)
+	: Ast(nullptr), elements(elements) {}
+
+StatListNode::~StatListNode()
+{
+	for (auto ele : elements)
+		delete ele;
+}
+
+void StatListNode::print() const
+{
+	for (auto ele : elements)
+	{
+		ele->print();
+		std::cout << std::endl;
+	}
+}
+
+VarNode::VarNode(AstToken *var)
+	: Ast(var) {}
+
+VecNode::VecNode(AstToken *token, std::vector<Ast*> &&elements)
+	: Ast(token), elements(std::forward<std::vector<Ast*>>(elements)) 
+{ }
+
+VecNode::VecNode(AstToken *token, const std::initializer_list<Ast*> &elements)
+	: Ast(token), elements(elements)
+{ }
+
+VecNode::~VecNode()
+{
+	for (auto ele : elements)
+		delete ele;
+}
+
+void VecNode::print() const
+{
+	std::cout << " [";
+	std::cout << to_string();
+	for (auto ele : elements)
+	{
+		ele->print();
+		std::cout << ", ";
+	}
+	std::cout << "] ";
 }
 

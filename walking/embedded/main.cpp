@@ -1,25 +1,39 @@
 #include "ast.h"
-#include <iostream>
+
+
+
+IntNode* get_int_node(int i)
+{
+	std::stringstream ss;
+	ss << i;
+
+	auto node = new IntNode(new AstToken(AstToken::INT, ss.str()));
+	return node;
+}
+
 
 int main()
 {
-	auto plus = new AstToken(AstToken::PLUS, "+");
-	auto one = new AstToken(AstToken::INT, "1");
-	auto two = new AstToken(AstToken::INT, "2");
+	// x = 1 + 4
+	auto stats = std::vector<Ast*>();
+	auto *add = new AddNode(get_int_node(1), new AstToken(AstToken::PLUS), get_int_node(4));
+	auto *var_x = new VarNode(new AstToken(AstToken::ID, "x"));
+	auto *assign = new AssignNode(var_x, new AstToken(AstToken::ASSIGN, "="), add);
+	stats.push_back(assign);
 
-	auto root = new AddNode(new IntNode(one), plus, new IntNode(two));
-	std::cout << root->to_string_tree() << std::endl;
-
-	std::initializer_list<ExprNode*> elements = {
-		new IntNode(new AstToken(AstToken::INT, "1")),
-		new IntNode(new AstToken(AstToken::INT, "2")),
-		new IntNode(new AstToken(AstToken::INT, "3"))
-	};
-
-	auto vec = new VecNode(nullptr, elements);
-	std::cout << vec->to_string_tree() << std::endl;
-
-
+	// print x * [2, 3, 4]
+	auto mult = new AstToken(AstToken::MULT, "*");
+	auto elements = std::vector<Ast*>();
+	elements.push_back(get_int_node(2));
+	elements.push_back(get_int_node(3));
+	elements.push_back(get_int_node(4));
+	auto v = new VecNode(new AstToken(AstToken::VEC), std::move(elements));
+	auto xref = new VarNode(new AstToken(AstToken::ID, "x"));
+	auto pv = new MultNode(xref, mult, v);
+	auto p = new PrintNode(new AstToken(AstToken::PRINT, "print"), pv);
+	stats.push_back(p);
+	auto stats_list = new StatListNode(stats);
+	stats_list->print();
 	return 0;
 
 }

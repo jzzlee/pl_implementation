@@ -3,6 +3,8 @@
 
 #include <string>
 #include <vector>
+#include <sstream>
+#include <iostream>
 
 class AstToken
 {
@@ -53,6 +55,7 @@ class AddNode :public Ast
 {
 public:
 	AddNode(Ast *left, AstToken *add, Ast *right);
+	~AddNode();
 	void print() const override;
 
 private:
@@ -64,6 +67,7 @@ class AssignNode : public Ast
 {
 public:
 	AssignNode(Ast *left, AstToken *assign, Ast *right);
+	~AssignNode();
 	void print() const override;
 
 private:
@@ -75,6 +79,7 @@ class DotProductNode : public Ast
 {
 public:
 	DotProductNode(Ast *left, AstToken *dot, Ast *right);
+	~DotProductNode();
 	void print() const override;
 
 private:
@@ -92,6 +97,7 @@ class MultNode : public Ast
 {
 public:
 	MultNode(Ast *left, AstToken *mult, Ast *right);
+	~MultNode();
 	void print() const override;
 
 private:
@@ -103,6 +109,7 @@ class PrintNode : public Ast
 {
 public:
 	PrintNode(AstToken *pr, Ast *element);
+	~PrintNode();
 	void print() const override;
 
 private:
@@ -114,15 +121,17 @@ class StatListNode : public Ast
 public:
 	StatListNode(const std::vector<Ast*> &elements);
 	StatListNode(const std::initializer_list<Ast*> &elements);
+	~StatListNode();
 	void print() const override;
 
 private:
-	Ast *elements;
+	std::vector<Ast*> elements;
 };
 
 class VarNode : public Ast
 {
-	VarNode(Ast *var);
+public:
+	VarNode(AstToken *var);
 };
 
 
@@ -131,6 +140,8 @@ class VecNode : public Ast
 public:
 	VecNode(AstToken *token, std::vector<Ast*> &&elements);
 	VecNode(AstToken *token, const std::initializer_list<Ast*> &elements);
+	~VecNode();
+	void print() const;
 
 private:
 	std::vector<Ast*> elements;
