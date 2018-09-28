@@ -148,7 +148,7 @@ class LeftShiftNode : public Ast
 public:
 	LeftShiftNode() = delete;
 	LeftShiftNode(const LeftShiftNode&) = delete;
-	LeftShiftNode(AstToken *shift, Ast *left, Ast *right);
+	LeftShiftNode(Ast *left, AstToken *shift, Ast *right);
 	~LeftShiftNode();
 
 	Ast *left;

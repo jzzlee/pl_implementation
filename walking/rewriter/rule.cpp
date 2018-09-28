@@ -1,6 +1,10 @@
 
 #include "rule.h"
 
+
+Rule::Rule(Rule::VISIT_ORDER order)
+	: order(order) {}
+
 Rule::~Rule()
 {
 
@@ -15,6 +19,14 @@ bool Rule::match(const Ast *node) const
 {
 	return false;
 }
+
+const Rule::VISIT_ORDER Rule::get_order() const
+{
+	return order;
+}
+
+ScalarVecMultRule::ScalarVecMultRule(Rule::VISIT_ORDER order)
+	:Rule(order) {}
 
 bool ScalarVecMultRule::match(const Ast *node) const
 {
@@ -35,14 +47,37 @@ Ast* ScalarVecMultRule::rewrite(Ast *node)
 	{
 		auto n_left = new IntNode(new AstToken(AstToken::INT, left->to_string()));
 		auto ele = new MultNode(n_left, new AstToken(AstToken::MULT, "*"), n_right);
+		elements.push_back(ele);
 	}
 	auto root = new VecNode(new AstToken(AstToken::VEC), std::move(elements));
 	right->elements.clear();
 	return root;
 }
 
+MultZeroRule::MultZeroRule(Rule::VISIT_ORDER order)
+	:Rule(order) {}
 
 bool MultZeroRule::match(const Ast *node) const
+{
+	if (node->get_node_type() != AstToken::MULT)
+		return false;
+	auto n = reinterpret_cast<MultNode*>(const_cast<Ast*>(node));
+	return n->right->get_node_type() == AstToken::INT && n->right->to_string() == "0";
+}
+
+Ast* MultZeroRule::rewrite(Ast *node)
+{
+	auto n = reinterpret_cast<MultNode*>(node);
+	auto right = n->right;
+
+	n->right = nullptr;
+	return right;
+}
+
+ZeroMultRule::ZeroMultRule(Rule::VISIT_ORDER order)
+	: Rule(order) {}
+
+bool ZeroMultRule::match(const Ast *node) const
 {
 	if (node->get_node_type() != AstToken::MULT)
 		return false;
@@ -50,7 +85,7 @@ bool MultZeroRule::match(const Ast *node) const
 	return n->left->get_node_type() == AstToken::INT && n->left->to_string() == "0";
 }
 
-Ast* MultZeroRule::rewrite(Ast *node)
+Ast* ZeroMultRule::rewrite(Ast *node)
 {
 	auto n = reinterpret_cast<MultNode*>(node);
 	auto left = n->left;
@@ -59,22 +94,8 @@ Ast* MultZeroRule::rewrite(Ast *node)
 	return left;
 }
 
-bool ZeroMultRule::match(const Ast *node) const
-{
-	if (node->get_node_type() != AstToken::MULT)
-		return false;
-	auto n = reinterpret_cast<MultNode*>(const_cast<Ast*>(node));
-	return n->right->get_node_type() == AstToken::INT && n->right->to_string() == "0";
-}
-
-Ast* ZeroMultRule::rewrite(Ast *node)
-{
-	auto n = reinterpret_cast<MultNode*>(node);
-	auto right = n->right;
-
-	n->left = nullptr;
-	return right;
-}
+XPlusXRule::XPlusXRule(Rule::VISIT_ORDER order)
+	:Rule(order) {}
 
 bool XPlusXRule::match(const Ast *node) const
 {
@@ -97,6 +118,9 @@ Ast* XPlusXRule::rewrite(Ast *node)
 	return root;
 }
 
+MultByTwoRule::MultByTwoRule(Rule::VISIT_ORDER order)
+	:Rule(order) {}
+
 bool MultByTwoRule::match(const Ast *node) const
 {
 	if (node->get_node_type() != AstToken::MULT)
@@ -110,9 +134,12 @@ Ast* MultByTwoRule::rewrite(Ast *node)
 	auto n = reinterpret_cast<MultNode*>(node);
 	auto right = n->right;
 	n->right = nullptr;
-	auto root = new LeftShiftNode(new AstToken(AstToken::LEFT_SHIFT, " << "), right, new IntNode(new AstToken(AstToken::INT, "1")));
+	auto root = new LeftShiftNode(right, new AstToken(AstToken::LEFT_SHIFT, " << "), new IntNode(new AstToken(AstToken::INT, "1")));
 	return root;
 }
+
+CombineLeftShiftRule::CombineLeftShiftRule(Rule::VISIT_ORDER order)
+	:Rule(order) {}
 
 bool CombineLeftShiftRule::match(const Ast *node) const
 {
@@ -132,13 +159,14 @@ Ast* CombineLeftShiftRule::rewrite(Ast *node)
 	auto n = reinterpret_cast<LeftShiftNode*>(node);
 	auto left = reinterpret_cast<LeftShiftNode*>(n->left);
 	n->left = nullptr;
-	auto right = reinterpret_cast<IntNode*>(left->right);
+	IntNode *right = reinterpret_cast<IntNode*>(left->right);
 	auto v1 = atoi(right->to_string().c_str());
 	auto v2 = atoi(n->right->to_string().c_str());
 	auto s = v1 + v2;
 	std::stringstream ss;
 	ss << s;
-	right->set_value(ss.str());
+	std::string text = ss.str();
+	right->set_value(text);
 	return left;
 }
 
@@ -150,14 +178,15 @@ AstRewriter::~AstRewriter()
 		delete rule;
 }
 
-void AstRewriter::add_rule(Rule *rule, AstRewriter::VISIT_ORDER order)
+void AstRewriter::add_rule(Rule *rule)
 {
+	auto order = rule->get_order();
 	switch (order)
 	{
-	case AstRewriter::TOPDOWN:
+	case Rule::TOPDOWN:
 		topdown_rules.push_back(rule);
 		break;
-	case AstRewriter::BOTTOMUP:
+	case Rule::BOTTOMUP:
 		bottomup_rules.push_back(rule);
 		break;
 	default:
@@ -165,9 +194,9 @@ void AstRewriter::add_rule(Rule *rule, AstRewriter::VISIT_ORDER order)
 	}
 }
 
-Ast* AstRewriter::rewrite(Ast *node)
+void AstRewriter::rewrite(Ast *&node)
 {
-	Ast *new_node = nullptr;
+	Ast *new_node = node;
 	for (auto rule : topdown_rules)
 	{
 		if (rule->match(node))
@@ -177,47 +206,121 @@ Ast* AstRewriter::rewrite(Ast *node)
 			node = new_node;
 		}
 	}
-	return new_node;
-
+	rewrite_ex(node);
+	rewrite_onback(node);
 }
 
-Ast* AstRewriter::rewrite_ex(Ast *node)
+void AstRewriter::rewrite_onback(Ast *&node)
 {
 	Ast *new_node = nullptr;
+	for (auto rule : bottomup_rules)
+	{
+		if (rule->match(node))
+		{
+			new_node = rule->rewrite(node);
+			delete node;
+			node = new_node;
+		}
+	}
+}
+
+void AstRewriter::rewrite_ex(Ast *&node)
+{
 	switch (node->get_node_type())
 	{
 	case AstToken::ID:
-		new_node = rewrite(reinterpret_cast<VarNode*>(node));
+		rewrite_elements(reinterpret_cast<VarNode*&>(node));
 		break;
 	case AstToken::ASSIGN:
-		new_node = rewrite(reinterpret_cast<AssignNode*>(node));
+		rewrite_elements(reinterpret_cast<AssignNode*&>(node));
 		break;
 	case AstToken::PRINT:
-		new_node = rewrite(reinterpret_cast<PrintNode*>(node));
+		rewrite_elements(reinterpret_cast<PrintNode*&>(node));
 		break;
 	case AstToken::PLUS:
-		new_node = rewrite(reinterpret_cast<AddNode*>(node));
+		rewrite_elements(reinterpret_cast<AddNode*&>(node));
 		break;
 	case AstToken::MULT:
-		new_node = rewrite(reinterpret_cast<MultNode*>(node));
+		rewrite_elements(reinterpret_cast<MultNode*&>(node));
 		break;
 	case AstToken::DOT:
-		new_node = rewrite(reinterpret_cast<DotProductNode*>(node));
+		rewrite_elements(reinterpret_cast<DotProductNode*&>(node));
 		break;
 	case AstToken::INT:
-		new_node = rewrite(reinterpret_cast<IntNode*>(node));
+		rewrite_elements(reinterpret_cast<IntNode*&>(node));
 		break;
 	case AstToken::VEC:
-		new_node = rewrite(reinterpret_cast<VecNode*>(node));
+		rewrite_elements(reinterpret_cast<VecNode*&>(node));
 		break;
 	case AstToken::STAT_LIST:
-		new_node = rewrite(reinterpret_cast<StatListNode*>(node));
+		rewrite_elements(reinterpret_cast<StatListNode*&>(node));
 		break;
 	case AstToken::LEFT_SHIFT:
-		new_node = rewrite(reinterpret_cast<LeftShiftNode*>(node));
+		rewrite_elements(reinterpret_cast<LeftShiftNode*&>(node));
 		break;
 	default:
-		std::cout << "rewrite invalid type" << node->get_node_type() << " " << node->to_string() << std::endl;
+		rewrite_elements(node);
 	}
-	return new_node;
+}
+
+void AstRewriter::rewrite_elements(Ast *&node)
+{
+
+}
+
+void AstRewriter::rewrite_elements(AssignNode *&node)
+{
+	rewrite(node->left);
+	rewrite(node->right);
+}
+
+void AstRewriter::rewrite_elements(PrintNode *&node)
+{
+	rewrite(node->element);
+}
+
+void AstRewriter::rewrite_elements(StatListNode *&node)
+{
+	for (auto &ele : node->elements)
+		rewrite(ele);
+}
+
+void AstRewriter::rewrite_elements(VarNode *&node)
+{
+
+}
+
+void AstRewriter::rewrite_elements(AddNode *&node)
+{
+	rewrite(node->left);
+	rewrite(node->right);
+}
+
+void AstRewriter::rewrite_elements(DotProductNode *&node)
+{
+	rewrite(node->left);
+	rewrite(node->right);
+}
+
+void AstRewriter::rewrite_elements(IntNode *&node)
+{
+
+}
+
+void AstRewriter::rewrite_elements(MultNode *&node)
+{
+	rewrite(node->left);
+	rewrite(node->right);
+}
+
+void AstRewriter::rewrite_elements(VecNode *&node)
+{
+	for (auto &ele : node->elements)
+		rewrite(ele);
+}
+
+void AstRewriter::rewrite_elements(LeftShiftNode *&node)
+{
+	rewrite(node->left);
+	rewrite(node->right);
 }

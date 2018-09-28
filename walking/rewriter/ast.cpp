@@ -159,7 +159,7 @@ VecNode::~VecNode()
 		delete ele;
 }
 
-LeftShiftNode::LeftShiftNode(AstToken *shift, Ast *left, Ast *right)
+LeftShiftNode::LeftShiftNode(Ast *left, AstToken *shift, Ast *right)
 	: Ast(shift), left(left), right(right) { }
 
 LeftShiftNode::~LeftShiftNode()
@@ -238,9 +238,11 @@ void AstVisitor::visit(const VarNode *node) const
 
 void AstVisitor::visit(const AddNode *node) const
 {
+	std::cout << "(";
 	visit(node->left);
 	std::cout << " " << node->to_string() << " ";
 	visit(node->right);
+	std::cout << ")";
 }
 
 void AstVisitor::visit(const DotProductNode *node) const

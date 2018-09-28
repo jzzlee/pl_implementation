@@ -7,17 +7,27 @@
 class Rule 
 {
 public:
-	Rule() = default;
+	enum VISIT_ORDER { TOPDOWN, BOTTOMUP };
+
+	Rule() = delete;
+	Rule(VISIT_ORDER order);
 	Rule(const Rule&) = delete;
 	virtual ~Rule();
 
 	virtual Ast *rewrite(Ast *node);
 	virtual bool match(const Ast *node) const;
+	const VISIT_ORDER get_order() const;
+
+private:
+	VISIT_ORDER order;
 };
 
 class ScalarVecMultRule: public Rule
 {
-	ScalarVecMultRule() = default;
+public:
+
+	ScalarVecMultRule() = delete;
+	ScalarVecMultRule(VISIT_ORDER order);
 	ScalarVecMultRule(const ScalarVecMultRule&) = delete;
 	Ast *rewrite(Ast *node) override;
 	bool match(const Ast *node) const override;
@@ -25,8 +35,9 @@ class ScalarVecMultRule: public Rule
 
 class MultZeroRule : public Rule
 {
-
-	MultZeroRule() = default;
+public:
+	MultZeroRule() = delete;
+	MultZeroRule(VISIT_ORDER order);
 	MultZeroRule(const MultZeroRule&) = delete;
 	Ast *rewrite(Ast *node) override;
 	bool match(const Ast *node) const override;
@@ -34,7 +45,9 @@ class MultZeroRule : public Rule
 
 class ZeroMultRule : public Rule
 {
-	ZeroMultRule() = default;
+public:
+	ZeroMultRule() = delete;
+	ZeroMultRule(VISIT_ORDER order);
 	ZeroMultRule(const ZeroMultRule&) = delete;
 	Ast *rewrite(Ast *node) override;
 	bool match(const Ast *node) const override;
@@ -42,7 +55,9 @@ class ZeroMultRule : public Rule
 
 class XPlusXRule : public Rule
 {
-	XPlusXRule() = default;
+public:
+	XPlusXRule() = delete;
+	XPlusXRule(VISIT_ORDER order);
 	XPlusXRule(const XPlusXRule&) = delete;
 	Ast *rewrite(Ast *node) override;
 	bool match(const Ast *node) const override;
@@ -50,7 +65,9 @@ class XPlusXRule : public Rule
 
 class MultByTwoRule : public Rule
 {
-	MultByTwoRule() = default;
+public:
+	MultByTwoRule() = delete;
+	MultByTwoRule(VISIT_ORDER order);
 	MultByTwoRule(const MultByTwoRule&) = delete;
 	Ast *rewrite(Ast *node) override;
 	bool match(const Ast *node) const override;
@@ -58,7 +75,9 @@ class MultByTwoRule : public Rule
 
 class CombineLeftShiftRule : public Rule
 {
-	CombineLeftShiftRule() = default;
+public:
+	CombineLeftShiftRule() = delete;
+	CombineLeftShiftRule(VISIT_ORDER order);
 	CombineLeftShiftRule(const CombineLeftShiftRule&) = delete;
 	Ast *rewrite(Ast *node) override;
 	bool match(const Ast *node) const override;
@@ -68,24 +87,25 @@ class CombineLeftShiftRule : public Rule
 class AstRewriter
 {
 public:
-	enum VISIT_ORDER { TOPDOWN, BOTTOMUP };
 
 	AstRewriter() = default;
 	~AstRewriter();
 
-	void add_rule(Rule *rule, VISIT_ORDER order);
-	Ast* rewrite_ex(Ast *node);
-	Ast* rewrite(Ast *node);
-	//Ast* rewrite(AssignNode *node);
-	//Ast* rewrite(PrintNode *node);
-	//Ast* rewrite(StatListNode *node);
-	//Ast* rewrite(VarNode *node);
-	//Ast* rewrite(AddNode *node);
-	//Ast* rewrite(DotProductNode *node);
-	//Ast* rewrite(IntNode *node);
-	//Ast* rewrite(MultNode *node);
-	//Ast* rewrite(VecNode *node);
-	//Ast* rewrite(LeftShiftNode *node);
+	void add_rule(Rule *rule);
+	void rewrite_ex(Ast *&node);
+	void rewrite(Ast *&node);
+	void rewrite_elements(Ast *&node);
+	void rewrite_elements(AssignNode *&node);
+	void rewrite_elements(PrintNode *&node);
+	void rewrite_elements(StatListNode *&node);
+	void rewrite_elements(VarNode *&node);
+	void rewrite_elements(AddNode *&node);
+	void rewrite_elements(DotProductNode *&node);
+	void rewrite_elements(IntNode *&node);
+	void rewrite_elements(MultNode *&node);
+	void rewrite_elements(VecNode *&node);
+	void rewrite_elements(LeftShiftNode *&node);
+	void rewrite_onback(Ast *&node);
 
 private:
 	std::vector<Rule*> topdown_rules;
