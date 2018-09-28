@@ -35,8 +35,8 @@ protected:
 	char c;
 
 public:
-	static const char LEOF;
-	static const int LEOF_TYPE;
+	static const char LEOF = (char)-1;
+	static const int LEOF_TYPE = 1;
 };
 
 
@@ -50,11 +50,11 @@ public:
 	Token nextToken();
 	static const std::string &getTokenName(int tokenType);
 
-	static const int NAME;
-	static const int COMMA;
-	static const int LBRACK;
-	static const int RBRACK;
-	static const int EQUALS;
+	static const int NAME = 2;
+	static const int COMMA = 3;
+	static const int LBRACK = 4;
+	static const int RBRACK = 5;
+	static const int EQUALS = 6;
 	static const std::vector<std::string> tokenNames;
 };
 

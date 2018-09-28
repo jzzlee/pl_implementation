@@ -1,6 +1,19 @@
 
 #include "ast.h"
 
+const int AstToken::INVALID_TOKEN_TYPE;
+const int AstToken::PLUS;
+const int AstToken::INT;
+const int AstToken::MULT;
+const int AstToken::DOT;
+const int AstToken::VEC;
+const int AstToken::ID;
+const int AstToken::ASSIGN;
+const int AstToken::PRINT;
+const int AstToken::STAT_LIST;
+const int AstToken::LEFT_SHIFT;
+const int AstToken::RIGHT_SHIFT;
+
 AstToken::AstToken(int type, const std::string &text)
 	: type(type), text(text)
 {}

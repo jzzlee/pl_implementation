@@ -9,16 +9,16 @@
 class AstToken
 {
 public:
-	static const int INVALID_TOKEN_TYPE;
-	static const int PLUS;
-	static const int INT;
-	static const int MULT;
-	static const int DOT;
-	static const int VEC;
-	static const int ID;
-	static const int ASSIGN;
-	static const int PRINT;
-	static const int STAT_LIST;
+	static const int INVALID_TOKEN_TYPE = 0;
+	static const int PLUS = 1;
+	static const int INT = 2;
+	static const int MULT = 3;
+	static const int DOT = 4;
+	static const int VEC = 5;
+	static const int ID = 6;
+	static const int ASSIGN = 7;
+	static const int PRINT = 8;
+	static const int STAT_LIST = 9;
 
 public:
 	AstToken(int type, const std::string &text);

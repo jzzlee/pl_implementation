@@ -14,8 +14,8 @@ std::string Token::toString() const
 }
 
 
-const char Lexer::LEOF = (char)-1;
-const int Lexer::LEOF_TYPE = 1;
+const char Lexer::LEOF;
+const int Lexer::LEOF_TYPE;
 
 Lexer::Lexer(const std::string &input) :
 	input(input)
@@ -49,11 +49,11 @@ void Lexer::match(char x)
 Lexer::~Lexer() { }
 
 
-const int ListLexer::NAME = 2;
-const int ListLexer::COMMA = 3;
-const int ListLexer::LBRACK = 4;
-const int ListLexer::RBRACK = 5;
-const int ListLexer::EQUALS = 6;
+const int ListLexer::NAME;
+const int ListLexer::COMMA;
+const int ListLexer::LBRACK;
+const int ListLexer::RBRACK;
+const int ListLexer::EQUALS;
 const std::vector<std::string> ListLexer::tokenNames = { "n/a", "<EOF>", "NAME", "COMMA", "LBRACK", "RBRACK", "EQUIALS" };
 
 ListLexer::ListLexer(const std::string &input) :

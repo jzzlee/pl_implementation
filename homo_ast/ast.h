@@ -12,9 +12,9 @@ public:
 	std::string to_string() const;
 	int get_type() const;
 
-	static const int INVALID_TOKEN_TYPE;
-	static const int PLUS;
-	static const int INT;
+	static const int INVALID_TOKEN_TYPE = 0;
+	static const int PLUS = 1;
+	static const int INT = 2;
 
 private:
 	int type;

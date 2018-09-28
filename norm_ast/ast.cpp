@@ -2,9 +2,9 @@
 #include "ast.h"
 #include <sstream>
 
-const int AstToken::INVALID_TOKEN_TYPE = 0;
-const int AstToken::PLUS = 1;
-const int AstToken::INT = 2;
+const int AstToken::INVALID_TOKEN_TYPE;
+const int AstToken::PLUS;
+const int AstToken::INT;
 
 AstToken::AstToken(int type, const std::string &text)
 	: type(type), text(text)
@@ -83,9 +83,9 @@ std::string Ast::to_string_tree() const
 }
 
 
-const int ExprNode::tINVALID = 0;
-const int ExprNode::tINT = 1;
-const int ExprNode::tVEC = 2;
+const int ExprNode::tINVALID;
+const int ExprNode::tINT;
+const int ExprNode::tVEC;
 
 ExprNode::ExprNode(AstToken *token)
 	: Ast(token), eval_type(tINVALID) 

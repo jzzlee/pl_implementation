@@ -12,9 +12,9 @@ public:
 	std::string to_string() const;
 	int get_type() const;
 
-	static const int INVALID_TOKEN_TYPE;
-	static const int PLUS;
-	static const int INT;
+	static const int INVALID_TOKEN_TYPE = 0;
+	static const int PLUS = 1;
+	static const int INT = 2;
 
 private:
 	int type;
@@ -51,9 +51,9 @@ public:
 	virtual const int get_eval_type() const;
 	std::string to_string() const override;
 
-	static const int tINVALID;
-	static const int tINT;
-	static const int tVEC;
+	static const int tINVALID = 0;
+	static const int tINT = 1;
+	static const int tVEC = 2;
 
 protected:
 	int eval_type;

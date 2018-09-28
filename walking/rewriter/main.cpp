@@ -11,7 +11,6 @@ IntNode* get_int_node(int i)
 	return node;
 }
 
-
 int main()
 {
 	// x = 1 + 4
