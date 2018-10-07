@@ -6,12 +6,10 @@
 
 int main()
 {
-	std::string s;
-	std::cout << "enter a line of code:" << std::endl;;
-	//std::getline(std::cin, s);
-	s = "[a, b=c, [d, e]]";
-	std::string s1 = "[a, b] = [c, d]";
-	std::vector<std::string> vec{ s1 };
+	std::string s2 = "float b;";
+	std::string s1 = "int a = b;";
+
+	std::vector<std::string> vec{ s1, s2 };
 
 
 	for (const auto &s : vec)
@@ -19,14 +17,9 @@ int main()
 		std::cout << s << std::endl;
 		auto lexer = ListLexer(s);
 		auto parser = SymbolParser(lexer);
-		parser.stat();
+		auto table = new SymbolTable();
+		parser.compile(table);
+		delete table;
 	}
-	//auto lexer = ListLexer(s);
-
-	//auto parser = SymbolParser(lexer);
-	//parser.list();
-
-	//system("pause");
-
 	return 0;
 }

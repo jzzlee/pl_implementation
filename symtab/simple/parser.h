@@ -86,7 +86,7 @@ public:
 	SymbolParser(Lexer &input);
 
 	void compile(SymbolTable *table);
-	bool mactch_var_declaration();
+	bool mactch_var_declaration(SymbolTable *table);
 
 	Token LT(int i);
 	int LA(int i);
@@ -96,17 +96,13 @@ public:
 	void consume() override;
 	int mark();
 	void release();
+	std::vector<Token>* pop_buff();
 	void pop();
 	void seek(int index);
 	bool isSpeculating();
-	void clear_buff();
 
 	void init() override;
 	Token last_token();
-
-	bool already_parsed_rule(const std::unordered_map<int, int> &memo);
-	void memorize(std::unordered_map<int, int> &memo, int index, bool failed);
-	void clear_memo();
 
 private:
 	static const int FAILED = -1; 

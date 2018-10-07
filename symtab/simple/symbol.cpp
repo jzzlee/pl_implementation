@@ -4,15 +4,14 @@
 using std::stringstream;
 
 
-Symbol::Symbol(const string &name, Type *type=nullptr)
+Symbol::Symbol(const string &name, Type *type)
 	: name(name), type(type) { }
 
-Symbol::Symbol(string &&name, Type *type=nullptr)
+Symbol::Symbol(string &&name, Type *type)
 	: name(name), type(type) {}
 
 Symbol::~Symbol()
 {
-	delete type;
 	type = nullptr;
 }
 
@@ -29,10 +28,10 @@ const string Symbol::to_string() const
 		return symbol_name();
 }
 
-VarSymbol::VarSymbol(const string &name, Type *type=nullptr)
+VarSymbol::VarSymbol(const string &name, Type *type)
 	: Symbol(name, type) { }
 
-VarSymbol::VarSymbol(string &&name, Type *type=nullptr)
+VarSymbol::VarSymbol(string &&name, Type *type)
 	: Symbol(name, type) { }
 
 BuiltinSymbol::BuiltinSymbol(const string &name)
@@ -46,11 +45,11 @@ const string BuiltinSymbol::get_name() const
 	return name;
 }
 
+Scope::~Scope() { }
+
 SymbolTable::SymbolTable()
 	: symbols(new unordered_map<string, Symbol*>)
-{
-	init_type_system();
-}
+{ }
 
 SymbolTable::~SymbolTable()
 {
@@ -59,11 +58,6 @@ SymbolTable::~SymbolTable()
 		delete ele.second;
 	}
 	delete symbols;
-}
-
-void SymbolTable::init_type_system()
-{
-
 }
 
 const string SymbolTable::scope_name() const
@@ -104,7 +98,10 @@ const string SymbolTable::to_string() const
 BuiltinSymbolTable* BuiltinSymbolTable::_instance = new BuiltinSymbolTable();
 
 BuiltinSymbolTable::BuiltinSymbolTable()
-	: SymbolTable() {}
+	: SymbolTable() 
+{
+	init_type_system();
+}
 
 const string BuiltinSymbolTable::scope_name() const
 {

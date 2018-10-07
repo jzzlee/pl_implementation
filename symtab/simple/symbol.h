@@ -50,7 +50,7 @@ public:
 	virtual Scope* get_enclosing_scope() const = 0;
 	virtual void define(Symbol *sym) = 0;
 	virtual Symbol* resolve(const string &name) const = 0;
-	virtual ~Scope() = 0;
+	virtual ~Scope();
 };
 
 
@@ -66,9 +66,6 @@ public:
 	Symbol* resolve(const string &name) const override;
 
 	const string to_string() const;
-
-protected:
-	virtual void init_type_system();
 
 
 private:
@@ -86,7 +83,7 @@ public:
 	static BuiltinSymbolTable *instance();
 
 protected:
-	void init_type_system() override;
+	void init_type_system();
 
 private:
 	static BuiltinSymbolTable* _instance;

@@ -145,7 +145,7 @@ const int SymbolParser::FAILED;
 
 
 SymbolParser::SymbolParser(Lexer &input) 
-	: SymbolParser(input) 
+	: Parser(input) 
 { 
 	//init();
 }
@@ -165,20 +165,10 @@ Token SymbolParser::last_token()
 
 void SymbolParser::compile(SymbolTable *table)
 {
-	if (mactch_var_declaration())
-	{
-		match(ListLexer::BUILTIN);
-		auto type = last_token();
-		match(ListLexer::NAME);
-		auto name = last_token();
-		if (match(ListLexer::EQUALS))
-		{
-
-		}
-	}
+	mactch_var_declaration(table);
 }
 
-bool SymbolParser::mactch_var_declaration()
+bool SymbolParser::mactch_var_declaration(SymbolTable *table)
 {
 	mark();
 	auto success = match(ListLexer::BUILTIN) && match(ListLexer::NAME);
@@ -200,10 +190,16 @@ bool SymbolParser::mactch_var_declaration()
 		release();
 		return false;
 	}
-	pop();
+	auto ptr = pop_buff();
+	auto line = *ptr;
+
+	auto text = line[1].getText();
+	auto type = reinterpret_cast<BuiltinSymbol*>(BuiltinSymbolTable::instance()->resolve(line[0].getText()));
+	auto vs = new VarSymbol(text, type);
+	std::cout << "get new varsymbol, text: " << text << ", type: " << type->get_name() << std::endl;
+	table->define(vs);
 	return true;
 }
-
 
 
 Token SymbolParser::LT(int i)
@@ -253,8 +249,7 @@ void SymbolParser::fill(int n)
 void SymbolParser::consume()
 {
 	p++;
-	//if (p + 1 >= buff.size())
-		sync(1);
+	sync(1);
 }
 
 int SymbolParser::mark()
@@ -270,19 +265,26 @@ void SymbolParser::release()
 	seek(marker);
 }
 
+std::vector<Token>* SymbolParser::pop_buff()
+{
+	markers.pop_back();
+	if (p + 1 == buff.size() && !isSpeculating())
+	{
+		p = 0;
+		auto ptr = new std::vector<Token>(buff);
+		buff.clear();
+		return ptr;
+	}
+	return nullptr;
+}
+
 void SymbolParser::pop()
 {
 	markers.pop_back();
-	clear_buff();
-}
-
-void SymbolParser::clear_buff()
-{
 	if (p + 1 == buff.size() && !isSpeculating())
 	{
 		p = 0;
 		buff.clear();
-		clear_memo();
 	}
 }
 
@@ -296,46 +298,3 @@ bool SymbolParser::isSpeculating()
 	return markers.size() > 0;
 }
 
-bool SymbolParser::assign()
-{
-	if (_list() && match(ListLexer::EQUALS) && _list())
-		return true;
-	return false;
-}
-
-bool SymbolParser::match_assign()
-{
-	mark();
-	auto success = match_list_new() && match(ListLexer::EQUALS) && match_list_new();
-	if (!success)
-		release();
-	else
-		pop();
-	return success;
-}
-
-bool SymbolParser::already_parsed_rule(const std::unordered_map<int, int> &memo)
-{
-	auto res = memo.find(p);
-	if (res == memo.end())
-	{
-		return false;
-	}
-	auto value = res->second;
-	std::cout << "parsed list before index " << p << " skip ahead to " << value << ": " << buff[value].getText() << std::endl;
-	if (value == FAILED)
-		return false;
-	seek(value);
-	return true;
-}
-
-void SymbolParser::memorize(std::unordered_map<int, int> &memo, int index, bool failed)
-{
-	auto end = failed ? FAILED : p;
-	memo.insert(std::make_pair(index, end));
-}
-
-void SymbolParser::clear_memo()
-{
-	list_memo.clear();
-}
