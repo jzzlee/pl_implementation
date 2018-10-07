@@ -5,6 +5,8 @@
 #include <vector>
 #include <unordered_map>
 
+#include "symbol.h"
+
 
 class Token {
 public:
@@ -58,6 +60,8 @@ public:
 	static const int EQUALS = 6;
 	static const int SIMICOLON = 7;
 
+	static const int BUILTIN = 1001;
+
 	static const std::vector<std::string> tokenNames;
 };
 
@@ -81,8 +85,9 @@ class SymbolParser : public Parser {
 public:
 	SymbolParser(Lexer &input);
 
-	bool speculate_stat_alt1();
-	bool speculate_stat_alt2();
+	void compile(SymbolTable *table);
+	bool mactch_var_declaration();
+
 	Token LT(int i);
 	int LA(int i);
 	bool match(int x) override;
@@ -97,12 +102,7 @@ public:
 	void clear_buff();
 
 	void init() override;
-
-	bool stat();
-	bool match_stat();
-
-	bool assign();
-	bool match_assign();
+	Token last_token();
 
 	bool already_parsed_rule(const std::unordered_map<int, int> &memo);
 	void memorize(std::unordered_map<int, int> &memo, int index, bool failed);

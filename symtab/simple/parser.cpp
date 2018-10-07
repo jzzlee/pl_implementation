@@ -55,6 +55,7 @@ const int ListLexer::LBRACK;
 const int ListLexer::RBRACK;
 const int ListLexer::EQUALS;
 const int ListLexer::SIMICOLON;
+const int ListLexer::BUILTIN;
 const std::vector<std::string> ListLexer::tokenNames = { "n/a", "<EOF>", "NAME", "COMMA", "LBRACK", "RBRACK", "EQUIALS", "SIMICOLON" };
 
 ListLexer::ListLexer(const std::string &input) :
@@ -90,7 +91,10 @@ Token ListLexer::Name()
 		consume();
 	} while (isLetter());
 
-	return Token(NAME, s);
+	if (BuiltinSymbolTable::instance() != nullptr && BuiltinSymbolTable::instance()->resolve(s)!=nullptr)
+		return Token(BUILTIN, s);
+	else
+		return Token(NAME, s);
 }
 
 Token ListLexer::nextToken()
@@ -141,7 +145,7 @@ const int SymbolParser::FAILED;
 
 
 SymbolParser::SymbolParser(Lexer &input) 
-	: ListParser(input) 
+	: SymbolParser(input) 
 { 
 	//init();
 }
@@ -152,60 +156,54 @@ void SymbolParser::init()
 	sync(1);
 }
 
-
-bool SymbolParser::stat()
+Token SymbolParser::last_token()
 {
-	if (!match_stat())
-		return false;
-	else
-		return true;
+	auto token = *(--buff.end());
+	buff.pop_back();
+	return token;
 }
 
-
-bool SymbolParser::match_stat()
+void SymbolParser::compile(SymbolTable *table)
 {
-	auto success = false;
-	mark();
-	if (match_list_new() && match(ListLexer::LEOF_TYPE))
-		success = true;
-	else
+	if (mactch_var_declaration())
 	{
-		release();
-		mark();
+		match(ListLexer::BUILTIN);
+		auto type = last_token();
+		match(ListLexer::NAME);
+		auto name = last_token();
+		if (match(ListLexer::EQUALS))
+		{
+
+		}
 	}
-	if(!success && match_assign() && match(ListLexer::LEOF_TYPE))
-		success = true;
+}
+
+bool SymbolParser::mactch_var_declaration()
+{
+	mark();
+	auto success = match(ListLexer::BUILTIN) && match(ListLexer::NAME);
 	if (!success)
-		release();
-	else
-		pop();
-	return success;
-}
-
-bool SymbolParser::speculate_stat_alt1()
-{
-	auto success = true;
-	mark();
-	if (match_list_new() && match(Lexer::LEOF_TYPE))
 	{
-		success = true;
+		release();
+		return success;
 	}
-	else
-		success = false;
-	release();
-	return success;
+	if (match(ListLexer::EQUALS))
+	{
+		if (!match(ListLexer::NAME))
+		{
+			release();
+			return false;
+		}
+	}
+	if (!match(ListLexer::SIMICOLON))
+	{
+		release();
+		return false;
+	}
+	pop();
+	return true;
 }
 
-
-bool SymbolParser::speculate_stat_alt2()
-{
-	auto success = false;
-	mark();
-	if (match_list_new() && match(ListLexer::EQUALS) && match_list_new())
-		success = true;
-	release();
-	return success;
-}
 
 
 Token SymbolParser::LT(int i)
