@@ -15,12 +15,12 @@ Symbol::~Symbol()
 	type = nullptr;
 }
 
-const string Symbol::symbol_name() const
+const string& Symbol::symbol_name() const
 {
 	return name;
 }
 
-const string Symbol::to_string() const
+const string& Symbol::to_string() const
 {
 	if (type)
 		return "<" + symbol_name() + ": " + type->get_name() + ">";
@@ -40,12 +40,44 @@ BuiltinSymbol::BuiltinSymbol(const string &name)
 BuiltinSymbol::BuiltinSymbol(string &&name)
 	:Symbol(name) {}
 
-const string BuiltinSymbol::get_name() const
+const string& BuiltinSymbol::get_name() const
 {
 	return name;
 }
 
 Scope::~Scope() { }
+
+MethodSymbol::MethodSymbol(const string &name, Type *type, Scope *scope)
+	: Symbol(name, type), enclosingScope(scope)
+{ }
+
+MethodSymbol::MethodSymbol(string &&name, Type *type, Scope *scope)
+	: Symbol(name, type), enclosingScope(scope)
+{ }
+
+MethodSymbol::~MethodSymbol()
+{
+	for (auto &ele : orderedArgs)
+		delete ele.second;
+	delete enclosingScope;
+}
+
+const string& MethodSymbol::scope_name() const
+{
+	return name;
+}
+
+Scope* MethodSymbol::get_enclosing_scope() const
+{
+	return enclosingScope;
+}
+
+void MethodSymbol::define(Symbol *symbol)
+{
+	auto item = std::make_pair(symbol->symbol_name(), symbol);
+	orderedArgs.push_back(item);
+	
+}
 
 SymbolTable::SymbolTable()
 	: symbols(new unordered_map<string, Symbol*>)
@@ -60,7 +92,7 @@ SymbolTable::~SymbolTable()
 	delete symbols;
 }
 
-const string SymbolTable::scope_name() const
+const string& SymbolTable::scope_name() const
 {
 	return "global";
 }
@@ -103,7 +135,7 @@ BuiltinSymbolTable::BuiltinSymbolTable()
 	init_type_system();
 }
 
-const string BuiltinSymbolTable::scope_name() const
+const string& BuiltinSymbolTable::scope_name() const
 {
 	return "builtin";
 }
