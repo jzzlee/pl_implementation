@@ -4,6 +4,12 @@
 #include <vector>
 
 
+class A
+{
+
+};
+
+
 int main()
 {
 	//std::string s2 = "float b;";
@@ -20,5 +26,6 @@ int main()
 	//	parser.compile(table);
 	//	delete table;
 	//}
+
 	return 0;
 }

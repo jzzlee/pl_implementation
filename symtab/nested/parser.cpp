@@ -203,8 +203,8 @@ bool SymbolParser::mactch_var_declaration(SymbolTable *table)
 	auto line = *ptr;
 
 	auto text = line[1].getText();
-	auto type = reinterpret_cast<BuiltinSymbol*>(BuiltinSymbolTable::instance()->resolve(line[0].getText()));
-	auto vs = new VarSymbol(text, type);
+	auto type = std::static_pointer_cast<BuiltinSymbol>(BuiltinSymbolTable::instance()->resolve(line[0].getText()));
+	auto vs = std::make_shared<VarSymbol>(text, type);
 	std::cout << "get new varsymbol, text: " << text << ", type: " << type->get_name() << std::endl;
 	table->define(vs);
 	return true;

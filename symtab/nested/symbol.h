@@ -6,6 +6,8 @@
 using std::string;
 using std::unordered_map;
 using std::vector;
+using std::shared_ptr;
+using std::weak_ptr;
 
 
 struct Type 
@@ -18,24 +20,28 @@ class Symbol
 {
 public:
 	Symbol() = delete;
-	Symbol(const string &name, Type *type=nullptr);
-	Symbol(string &&name, Type *type=nullptr);
+	Symbol(const string &name);
+	Symbol(string &&name);
+	Symbol(const string &name, shared_ptr<Type> type);
+	Symbol(string &&name, shared_ptr<Type> type);
 	virtual ~Symbol();
 
 	const string& symbol_name() const;
 	const string& to_string() const;
+	void set_scope(shared_ptr<Scope> sp);
+
 protected:
 	string name;
-	Type *type;
-	std::weak_ptr<Scope> scope;
+	weak_ptr<Type> type;
+	weak_ptr<Scope> scope;
 };
 
 class VarSymbol : public Symbol
 {
 public:
 	VarSymbol() = delete;
-	VarSymbol(const string &name, Type *type = nullptr);
-	VarSymbol(string &&name, Type *type = nullptr);
+	VarSymbol(const string &name, shared_ptr<Type> type);
+	VarSymbol(string &&name, shared_ptr<Type> type);
 };
 
 class BuiltinSymbol : public Symbol, public Type
@@ -52,31 +58,31 @@ class Scope
 {
 public:
 	virtual const string &scope_name() const = 0;
-	virtual Scope* get_enclosing_scope() const = 0;
-	virtual void define(Symbol *sym) = 0;
-	virtual Symbol* resolve(const string &name) const = 0;
+	virtual shared_ptr<Scope> get_enclosing_scope() const = 0;
+	virtual void define(shared_ptr<Symbol> sym) = 0;
+	virtual shared_ptr<Symbol> resolve(const string &name) const = 0;
 	virtual ~Scope();
 };
 
 
-class MethodSymbol : public Symbol, public Scope
+class MethodSymbol : public Symbol, public Scope, public std::enable_shared_from_this<MethodSymbol>
 {
 public:
 	MethodSymbol() = delete;
-	MethodSymbol(const string &name, Type *type, Scope *scope);
-	MethodSymbol(string &&name, Type *type, Scope *scope);
+	MethodSymbol(const string &name, shared_ptr<Type> type, shared_ptr<Scope> scope);
+	MethodSymbol(string &&name, shared_ptr<Type> type, shared_ptr<Scope> scope);
 	MethodSymbol(const MethodSymbol&) = delete;
 	MethodSymbol& operator=(const MethodSymbol&) = delete;
 	~MethodSymbol();
 
 	const string &scope_name() const override;
-	Scope* get_enclosing_scope() const override;
-	void define(Symbol* symbol) override;
-	Symbol* resolve(const string &name) const override;
+	shared_ptr<Scope> get_enclosing_scope() const override;
+	void define(shared_ptr<Symbol> symbol) override;
+	shared_ptr<Symbol> resolve(const string &name) const override;
 
 private:
-	vector<std::pair<string, Symbol*>> orderedArgs;
-	Scope *enclosingScope;
+	vector<std::pair<string, shared_ptr<Symbol>>> orderedArgs;
+	shared_ptr<Scope> enclosingScope;
 };
 
 
@@ -90,16 +96,16 @@ public:
 	SymbolTable& operator=(const SymbolTable&) = delete;
 
 	const string& scope_name() const override;
-	Scope* get_enclosing_scope() const override;
-	void define(Symbol *sym) override;
-	Symbol* resolve(const string &name) const override;
+	shared_ptr<Scope> get_enclosing_scope() const override;
+	void define(shared_ptr<Symbol> symbol) override;
+	shared_ptr<Symbol> resolve(const string &name) const override;
 
 	const string to_string() const;
 
 
 private:
 
-	unordered_map<string, Symbol*> *symbols;
+	shared_ptr<unordered_map<string, shared_ptr<Symbol>>> symbols;
 };
 
 class BuiltinSymbolTable : public SymbolTable

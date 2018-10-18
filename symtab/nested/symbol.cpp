@@ -3,17 +3,20 @@
 
 using std::stringstream;
 
+Symbol::Symbol(const string &name)
+	: name(name) {}
 
-Symbol::Symbol(const string &name, Type *type)
+Symbol::Symbol(string &&name)
+	: name(name) {}
+
+Symbol::Symbol(const string &name, shared_ptr<Type> type)
 	: name(name), type(type) { }
 
-Symbol::Symbol(string &&name, Type *type)
+Symbol::Symbol(string &&name, shared_ptr<Type> type)
 	: name(name), type(type) {}
 
 Symbol::~Symbol()
-{
-	type = nullptr;
-}
+{ }
 
 const string& Symbol::symbol_name() const
 {
@@ -22,16 +25,24 @@ const string& Symbol::symbol_name() const
 
 const string& Symbol::to_string() const
 {
-	if (type)
-		return "<" + symbol_name() + ": " + type->get_name() + ">";
+	if (!type.expired())
+	{
+		auto p = type.lock();
+		return "<" + symbol_name() + ": " + p->get_name() + ">";
+	}
 	else
 		return symbol_name();
 }
 
-VarSymbol::VarSymbol(const string &name, Type *type)
+void Symbol::set_scope(shared_ptr<Scope> sp)
+{
+	scope = sp;
+}
+
+VarSymbol::VarSymbol(const string &name, shared_ptr<Type> type)
 	: Symbol(name, type) { }
 
-VarSymbol::VarSymbol(string &&name, Type *type)
+VarSymbol::VarSymbol(string &&name, shared_ptr<Type> type)
 	: Symbol(name, type) { }
 
 BuiltinSymbol::BuiltinSymbol(const string &name)
@@ -47,67 +58,67 @@ const string& BuiltinSymbol::get_name() const
 
 Scope::~Scope() { }
 
-MethodSymbol::MethodSymbol(const string &name, Type *type, Scope *scope)
+MethodSymbol::MethodSymbol(const string &name, shared_ptr<Type> type, shared_ptr<Scope> scope)
 	: Symbol(name, type), enclosingScope(scope)
 { }
 
-MethodSymbol::MethodSymbol(string &&name, Type *type, Scope *scope)
+MethodSymbol::MethodSymbol(string &&name, shared_ptr<Type> type, shared_ptr<Scope> scope)
 	: Symbol(name, type), enclosingScope(scope)
 { }
 
 MethodSymbol::~MethodSymbol()
-{
-	for (auto &ele : orderedArgs)
-		delete ele.second;
-	delete enclosingScope;
-}
+{ }
 
 const string& MethodSymbol::scope_name() const
 {
 	return name;
 }
 
-Scope* MethodSymbol::get_enclosing_scope() const
+shared_ptr<Scope> MethodSymbol::get_enclosing_scope() const
 {
 	return enclosingScope;
 }
 
-void MethodSymbol::define(Symbol *symbol)
+void MethodSymbol::define(shared_ptr<Symbol> symbol)
 {
 	auto item = std::make_pair(symbol->symbol_name(), symbol);
 	orderedArgs.push_back(item);
-	
+	symbol->set_scope(shared_from_this());
+}
+
+shared_ptr<Symbol> MethodSymbol::resolve(const string &name) const
+{
+	for (const auto &ele : orderedArgs)
+		if (ele.first == name)
+			return ele.second;
+	if (enclosingScope)
+		return enclosingScope->resolve(name);
+	return nullptr;
 }
 
 SymbolTable::SymbolTable()
-	: symbols(new unordered_map<string, Symbol*>)
+	: symbols(std::make_shared<unordered_map<string, shared_ptr<Symbol>>>())
 { }
 
 SymbolTable::~SymbolTable()
-{
-	for (auto &ele : *symbols)
-	{
-		delete ele.second;
-	}
-	delete symbols;
-}
+{ }
 
 const string& SymbolTable::scope_name() const
 {
 	return "global";
 }
 
-Scope* SymbolTable::get_enclosing_scope() const
+shared_ptr<Scope> SymbolTable::get_enclosing_scope() const
 {
 	return nullptr;
 }
 
-void SymbolTable::define(Symbol *sym)
+void SymbolTable::define(shared_ptr<Symbol> symbol)
 {
-	symbols->insert(std::make_pair(sym->symbol_name(), sym));
+	symbols->insert(std::make_pair(symbol->symbol_name(), symbol));
 }
 
-Symbol* SymbolTable::resolve(const string &name) const
+shared_ptr<Symbol> SymbolTable::resolve(const string &name) const
 {
 	auto iter = symbols->find(name);
 	if (iter != symbols->end())
@@ -147,6 +158,6 @@ std::unique_ptr<BuiltinSymbolTable>& BuiltinSymbolTable::instance()
 
 void BuiltinSymbolTable::init_type_system()
 {
-	define(new BuiltinSymbol("int"));
-	define(new BuiltinSymbol("float"));
+	define(std::make_shared<BuiltinSymbol>("int"));
+	define(std::make_shared<BuiltinSymbol>("float"));
 }
